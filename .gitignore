@@ -1,0 +1,68 @@
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+#                                                           #
+#  888888 8888888              88 8888888                   #
+#    88   88                   88 88    oo                  #
+#    88   88                   88 88                        #
+#    88   88888 .d8b.   .d8b.  88 88888 88 8888b.  .d8b.    #
+#    88   88   d8P Y8b d8P Y8b 88 88    88 88  8b d8P Y8b   #
+#    88   88   8888888 8888888 88 88    88 88  88 8888888   #
+#    88   88   Y8b.    Y8b.    88 88    88 88  88 Y8b.      #
+#  888888 88    ºY888P  ºY888P 88 88    88 88  88  ºY888P   #
+#                           (c) 2015-2025 I Feel Fine, Inc. #
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+# .gitignore
+# -------------
+# Git Ignore file for IFF
+
+# Ignore Archive Files
+*.zip
+*.tar
+*.tgz
+*.7z
+*.rar
+*.gz
+*.xz
+*.bz2
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+# MacOS
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk

@@ -1,0 +1,8 @@
+#!/bin/sh
+# pfSense CIDR Calculator package deinstallation script
+
+if [ -f "/usr/local/pkg/cidr_calc.inc" ]; then
+	/usr/local/bin/php -f /etc/rc.packages CIDRCalculator ${2}
+fi
+
+exit 0

@@ -1,0 +1,6 @@
+etc/inc/priv/cidr_calc.inc
+usr/local/pkg/cidr_calc.inc
+usr/local/pkg/cidr_calc.xml
+usr/local/share/pfSense-pkg-CIDRCalculator/info.xml
+usr/local/www/diag_cidr_calculator.php
+usr/local/www/widgets/cidr_calculator.widget.php
