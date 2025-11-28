@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<packagegui>
+  <copyright>
+    <![CDATA[
+/*
+ * info.xml
+ *
+ * part of pfSense (https://www.pfsense.org)
+ *
+ * 888888 888888 888888 | Copyright (c) 2015-2025 I Feel Fine, Inc.
+ *   88   88     88     | Licensed under the Apache License, Version 2.0 (the
+ *   88   8888   8888   | "License"); you may not use this file except in
+ *   88   88     88     | compliance with the License. You may obtain a copy of
+ * 888888 88     88     | the License at
+ * _____________________|   http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+    ]]>
+  </copyright>
+  <name>CIDRCalculator</name>
+  <version>%%PKGVERSION%%</version>
+  <title>CIDR Calculator</title>
+  <descr>Responsive IPv4 and IPv6 CIDR Calculator with dashboard widget support.</descr> <category>Diagnostics</category>
+  <maintainer>13614128+imdebating@users.noreply.github.com</maintainer>
+  <website>https://github.com/ifeelfine/pfSense-pkg-CIDRCalculator</website>
+  <menu>
+    <name>CIDR Calculator</name>
+    <section>Diagnostics</section>
+    <url>/diagnostics_cidr_calculator.php</url>
+  </menu>
+  <additional_files_needed>
+    <item>https://raw.githubusercontent.com/ifeelfine/pfSense-pkg-CIDRCalculator/master/files/usr/local/www/diagnostics_cidr_calculator.php</item>
+    <prefix>/usr/local/www/</prefix>
+  </additional_files_needed>
+  <additional_files_needed>
+    <item>https://raw.githubusercontent.com/ifeelfine/pfSense-pkg-CIDRCalculator/master/files/usr/local/www/widgets/cidr_calculator.widget.php</item>
+    <prefix>/usr/local/www/widgets/</prefix>
+  </additional_files_needed>
+  <additional_files_needed>
+    <item>https://raw.githubusercontent.com/ifeelfine/pfSense-pkg-CIDRCalculator/master/files/etc/inc/priv/cidr_calc.inc</item>
+    <prefix>/etc/inc/priv/</prefix>
+  </additional_files_needed>
+</packagegui>

@@ -1,0 +1,13 @@
+#!/bin/sh
+# pfSense CIDR Calculator package installation script
+
+if [ "${2}" != "POST-INSTALL" ]; then
+	exit 0
+fi
+
+# Execute package installation functions
+if [ -f "${PKG_ROOTDIR}/usr/local/pkg/cidr_calc.inc" ]; then
+	${PKG_ROOTDIR}/usr/local/bin/php -f ${PKG_ROOTDIR}/etc/rc.packages CIDRCalculator ${2}
+fi
+
+exit 0

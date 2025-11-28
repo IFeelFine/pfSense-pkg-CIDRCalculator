@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pfsensepkgs>
+  <package>
+    <copyright>
+    <![CDATA[
+/*
+ * cidr_cacl.xml
+ *
+ * part of pfSense (https://www.pfsense.org)
+ *
+ * 888888 888888 888888 | Copyright (c) 2015-2025 I Feel Fine, Inc.
+ *   88   88     88     | Licensed under the Apache License, Version 2.0 (the
+ *   88   8888   8888   | "License"); you may not use this file except in
+ *   88   88     88     | compliance with the License. You may obtain a copy of
+ * 888888 88     88     | the License at
+ * _____________________|   http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+    ]]>
+    </copyright>
+    <name>CIDRCalculator</name>
+    <version>0.1</version>
+    <title>CIDR Calculator</title>
+    <descr><![CDATA[Interactive CIDR Calculator for IPv4 & IPv6 networks.]]></descr>
+    <website>https://github.com/ifeelfine/pfSense-pkg-CIDRCalculator</website>
+    <maintainer>13614128+imdebating@users.noreply.github.com</maintainer>
+    <include_file>/usr/local/pkg/cidr_calc.inc</include_file>
+    <menu>
+      <name>CIDR Calculator</name>
+      <section>Diagnostics</section>
+      <url>/diagnostics_cidr_calculator.php</url>
+    </menu>
+  </package>
+</pfsensepkgs>
