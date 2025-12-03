@@ -1,5 +1,31 @@
 # pfSense CIDR Calculator Package
 
+<!--------------------------------------------------------------------------
+-                                                                          -
+-       888888    888888              88     888888                        -
+-         88      88                  88     88   oo                       -
+-         88      88                  88     88                            -
+-         88      8888 .d8b.   .d8b.  88     8888 88 8888b.  .d8b.         -
+-         88      88  d8P Y8b d8P Y8b 88     88   88 88  8b d8P Y8b        -
+-         88      88  8888888 8888888 88     88   88 88  88 8888888        -
+-         88      88  Y8b.    Y8b.    88     88   88 88  88 Y8b.           -
+-       888888    88   ºY888P  ºY888P 88     88   88 88  88  ºY888P        -
+-                                                                          -
+-                                               (c) 2025 I Feel Fine, Inc. -
+----------------------------------------------------------------------------
+- Licensed under the Apache License, Version 2.0 (the "License");          -
+- you may not use this file except in compliance with the License.         -
+- You may obtain a copy of the License at                                  -
+-                                                                          -
+-     http://www.apache.org/licenses/LICENSE-2.0                           -
+-                                                                          -
+- Unless required by applicable law or agreed to in writing, software      -
+- distributed under the License is distributed on an "AS IS" BASIS,        -
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. -
+- See the License for the specific language governing permissions and      -
+- limitations under the License.                                           -
+--------------------------------------------------------------------------->
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![pfSense](https://img.shields.io/badge/pfSense-2.8+-orange.svg)](https://www.pfsense.org/)
 
@@ -18,7 +44,7 @@ An interactive IPv4 and IPv6 CIDR subnet calculator for pfSense with dashboard w
 
 ## Requirements
 
-- pfSense 2.7.0 or later
+- pfSense 2.8.0 or later (should work with earlier versions)
 - FreeBSD ports system (for building from source)
 
 ## Installation
@@ -65,27 +91,27 @@ make clean package
 
 ## File Structure
 
-```
+```plaintext
 pfSense-pkg-CIDRCalculator/
-├── Makefile                          # FreeBSD port Makefile
-├── pkg-desc                          # Package description
-├── pkg-plist                         # File manifest
-├── pkg-install.in                    # Installation script
-├── pkg-deinstall.in                  # Deinstallation script
-└── files/
-  ├── etc/inc/priv/
-  │ └── cidr_calc.inc                 # Privilege definitions
-  ├── usr/local/pkg/
-  │ ├── cidr_calc.inc                 # Package functions
-  │ └── cidr_calc.xml                 # Package configuration
-  ├── usr/local/share/pfSense-pkg-CIDRCalculator/
-  │ └── info.xml                      # Package metadata
-  └── usr/local/www/
-  ├── diagnostics_cidr_calculator.php # Main calculator page
-  └── widgets/
-    └── cidr_calculator.widget.php    # Dashboard widget
+├── Makefile                                # FreeBSD port Makefile
+├── pkg-desc                                # Package description
+├── pkg-plist                               # File manifest
+└─┬ files/
+  ├── pkg-install.in                        # Installation script
+  ├── pkg-deinstall.in                      # Deinstallation script
+  ├─┬ etc/inc/priv/
+  │ └── cidr_calc.priv.inc                  # Privilege definitions
+  └─┬ usr/local/
+    ├─┬ pkg/
+    │ ├── cidr_calc.inc                     # Package functions
+    │ └── cidr_calc.xml                     # Package configuration
+    ├─┬ share/pfSense-pkg-CIDRCalculator/
+    │ └── info.xml                          # Package metadata
+    └─┬ www/
+      ├── diag_cidr_calculator.php          # Main calculator page
+      └─┬ widgets/widgets/
+        └── cidr_calculator.widget.php      # Dashboard widget
 ```
-
 
 ## Security Considerations
 
@@ -142,24 +168,26 @@ See [TEST_CASES.md](TEST_CASES.md) for comprehensive testing procedures.
 
 ## License
 
+```plaintext
 Copyright (c) 2025 I Feel Fine, Inc.
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-       http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
 
 ## Author
 
 **David Bates**  
-Email: 13614128+imdebating@users.noreply.github.com  
+Email: <13614128+imdebating@users.noreply.github.com>
 GitHub: [@ifeelfine](https://github.com/ifeelfine)
 
 ## Acknowledgments

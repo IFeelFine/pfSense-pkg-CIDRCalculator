@@ -1,7 +1,8 @@
 <?php
 /*
- * cidr_calc.inc
- * 
+ * pfSense CIDR Calculator Privilege Mapping
+ * Grants access to users with dashboard access.
+ *
  * part of pfSense (https://www.pfsense.org)
  * Copyright (c) 2025 I Feel Fine, Inc.
  * Copyright (c) 2015-2025 Rubicon Communications, LLC (Netgate)
@@ -20,22 +21,13 @@
  * limitations under the License.
  */
 
-// Package functions file (required by pfSense package system)
-// No specific functions needed for this package as all logic is client-side JavaScript
+global $priv_list;
 
-function cidr_calc_install() {
-	// Called during package installation
-	// No special installation actions required
-	return;
-}
+$priv_list['page-diagnostics-cidr_calculator'] = array(
+    'name'    => 'WebCfg - Diagnostics: CIDR Calculator',
+    'descr'   => 'Allow access to the CIDR subnet calculator',
+    'match'   => array('diag_cidr_calculator.php*'),
+);
 
-function cidr_calc_deinstall() {
-	// Called during package removal
-	// Clean up any configuration
-	global $config;
-	if (isset($config['widgets']['cidr_calculator'])) {
-		unset($config['widgets']['cidr_calculator']);
-		write_config("Removed CIDR Calculator widget configuration");
-	}
-}
+$priv_list['page-diagnostics-cidr_calculator']['parent'] = 'page-dashboard-all';
 ?>

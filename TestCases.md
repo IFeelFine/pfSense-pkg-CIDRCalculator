@@ -1,5 +1,31 @@
 # pfSense CIDR Calculator - Test Cases
 
+<!--------------------------------------------------------------------------
+-                                                                          -
+-       888888    888888              88     888888                        -
+-         88      88                  88     88   oo                       -
+-         88      88                  88     88                            -
+-         88      8888 .d8b.   .d8b.  88     8888 88 8888b.  .d8b.         -
+-         88      88  d8P Y8b d8P Y8b 88     88   88 88  8b d8P Y8b        -
+-         88      88  8888888 8888888 88     88   88 88  88 8888888        -
+-         88      88  Y8b.    Y8b.    88     88   88 88  88 Y8b.           -
+-       888888    88   ºY888P  ºY888P 88     88   88 88  88  ºY888P        -
+-                                                                          -
+-                                               (c) 2025 I Feel Fine, Inc. -
+----------------------------------------------------------------------------
+- Licensed under the Apache License, Version 2.0 (the "License");          -
+- you may not use this file except in compliance with the License.         -
+- You may obtain a copy of the License at                                  -
+-                                                                          -
+-     http://www.apache.org/licenses/LICENSE-2.0                           -
+-                                                                          -
+- Unless required by applicable law or agreed to in writing, software      -
+- distributed under the License is distributed on an "AS IS" BASIS,        -
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. -
+- See the License for the specific language governing permissions and      -
+- limitations under the License.                                           -
+--------------------------------------------------------------------------->
+
 ## Manual Test Procedures
 
 ### Test Environment Setup

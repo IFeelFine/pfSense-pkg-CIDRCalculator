@@ -1,0 +1,194 @@
+name: Build pfSense Package
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  PACKAGE_NAME: pfSense-pkg-CIDRCalculator
+  PFSENSE_VERSION: "2.8"
+
+jobs:
+  validate:
+    name: Validate Package Files
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check required files
+      run: |
+        echo "Checking for required files..."
+        required_files=(
+          "Makefile"
+          "pkg-desc"
+          "pkg-plist"
+          "pkg-install.in"
+          "pkg-deinstall.in"
+          "files/etc/inc/priv/cidr_calc.inc"
+          "files/usr/local/pkg/cidr_calc.inc"
+          "files/usr/local/pkg/cidr_calc.xml"
+          "files/usr/local/share/pfSense-pkg-CIDRCalculator/info.xml"
+          "files/usr/local/www/diag_cidr_calculator.php"
+          "files/usr/local/www/widgets/cidr_calculator.widget.php"
+        )
+        
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "ERROR: Required file missing: $file"
+            exit 1
+          fi
+          echo "✓ $file"
+        done
+        
+    - name: Validate PHP syntax
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y php-cli
+        
+        echo "Validating PHP files..."
+        find files -name "*.php" -o -name "*.inc" | while read file; do
+          echo "Checking: $file"
+          php -l "$file" || exit 1
+        done
+        
+    - name: Validate XML syntax
+      run: |
+        sudo apt-get install -y libxml2-utils
+        
+        echo "Validating XML files..."
+        find files -name "*.xml" | while read file; do
+          echo "Checking: $file"
+          xmllint --noout "$file" || exit 1
+        done
+        
+    - name: Check for security issues
+      run: |
+        echo "Scanning for potential security issues..."
+        
+        # Check for eval() usage
+        if grep -r "eval(" files/; then
+          echo "WARNING: Found eval() usage"
+        fi
+        
+        # Check for system() calls
+        if grep -r "system(" files/; then
+          echo "WARNING: Found system() calls"
+        fi
+        
+        # Check for shell_exec()
+        if grep -r "shell_exec(" files/; then
+          echo "WARNING: Found shell_exec() calls"
+        fi
+        
+        echo "Security scan complete"
+
+  build:
+    name: Build Package
+    needs: validate
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set version
+      id: version
+      run: |
+        if [[ $GITHUB_REF == refs/tags/v* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          VERSION="0.1-dev-$(git rev-parse --short HEAD)"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Building version: $VERSION"
+        
+    - name: Create package structure
+      run: |
+        mkdir -p package/usr/local/pkg
+        mkdir -p package/usr/local/www
+        mkdir -p package/usr/local/www/widgets
+        mkdir -p package/usr/local/share/pfSense-pkg-CIDRCalculator
+        mkdir -p package/etc/inc/priv
+        
+        # Copy files to package structure
+        cp -r files/* package/
+        
+    - name: Create tarball
+      run: |
+        cd package
+        tar czf ../${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz *
+        cd ..
+        
+    - name: Generate checksums
+      run: |
+        sha256sum ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz > checksums.txt
+        md5sum ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz >> checksums.txt
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: package-${{ steps.version.outputs.VERSION }}
+        path: |
+          ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz
+          checksums.txt
+        retention-days: 30
+
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set version
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: package-${{ steps.version.outputs.VERSION }}
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz
+          checksums.txt
+        body: |
+          ## pfSense CIDR Calculator v${{ steps.version.outputs.VERSION }}
+          
+          ### Installation
+          
+          Download the package and install via pfSense Package Manager or manually:
+          
+          ```
+          pkg add pfSense-pkg-CIDRCalculator-${{ steps.version.outputs.VERSION }}.tar.gz
+          ```
+          
+          ### Changes
+          
+          See [CHANGELOG.md](CHANGELOG.md) for details.
+          
+          ### Checksums
+          
+          See `checksums.txt` for file verification.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
