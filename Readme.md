@@ -37,7 +37,7 @@ An interactive IPv4 and IPv6 CIDR subnet calculator for pfSense with dashboard w
 - **Tabbed Interface**: Clean, organized layout with separate tabs for IPv4 and IPv6
 - **Dashboard Widget**: Compact calculator widget for the pfSense dashboard
 - **Real-time Calculations**: Instant results as you type or change selections
-- **Comprehensive Results**: 
+- **Comprehensive Results**:
   - IPv4: Network address, broadcast, usable range, wildcard mask, and more
   - IPv6: Full address expansion, network address, /64 subnet counts
 - **User-Friendly**: Accessible from Diagnostics menu to users with dashboard privileges
@@ -159,7 +159,7 @@ Contributions are welcome! Please follow these guidelines:
 
 ## Testing
 
-See [TEST_CASES.md](TEST_CASES.md) for comprehensive testing procedures.
+See [TEST_CASES.md](/TestCases.md) for comprehensive testing procedures.
 
 ## Known Issues
 
@@ -198,6 +198,7 @@ GitHub: [@ifeelfine](https://github.com/ifeelfine)
 ## Changelog
 
 ### Version 0.1 (Initial Release)
+
 - IPv4 CIDR calculator with full feature set
 - IPv6 CIDR calculator with /64 subnet counting
 - Dashboard widget with toggle options
