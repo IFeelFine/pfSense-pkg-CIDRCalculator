@@ -49,6 +49,40 @@ if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
 		exit;
 	}
 
+	// Rate limiting: max 10 runs every 20 seconds per session
+	$rate_limit_key = 'cidr_widget_config_run';
+	$rate_limit_max = 10;
+	$rate_limit_window = 20; // seconds
+
+	if (!isset($_SESSION[$rate_limit_key])) {
+		$_SESSION[$rate_limit_key] = array('count' => 0, 'timestamp' => time());
+	}
+
+	$rate_data = &$_SESSION[$rate_limit_key];
+	$current_time = time();
+
+	// Reset counter if window has elapsed
+	if (($current_time - $rate_data['timestamp']) > $rate_limit_window) {
+		$rate_data['count'] = 0;
+		$rate_data['timestamp'] = $current_time;
+	}
+
+	// Check if rate limit exceeded
+	if ($rate_data['count'] >= $rate_limit_max) {
+		log_error(sprintf(
+			"[CIDR Calculator Widget] Rate limit exceeded for session %s: %d requests in %d seconds",
+			session_id(),
+			$rate_data['count'],
+			$rate_limit_window
+		));
+		header('HTTP/1.1 429 Too Many Requests');
+		echo gettext("Too many configuration updates. Please wait a moment and try again.");
+		exit;
+	}
+
+	// Increment counter
+	$rate_data['count']++;
+
 	// Validate input - only accept 'true' or 'false'
 	$new_ipv4 = ($_POST['show_ipv4'] === 'true') ? 'true' : 'false';
 	$new_ipv6 = ($_POST['show_ipv6'] === 'true') ? 'true' : 'false';

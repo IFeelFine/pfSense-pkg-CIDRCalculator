@@ -36,10 +36,10 @@ require_once("cidr_calc.inc");
 // Verify user has required privilege
 if (!isAllowedPage("diag_cidr_calculator.php")) {
 	// Log unauthorized access attempt
-	log_auth(sprintf(
-		gettext("Unauthorized access attempt to CIDR Calculator by user '%s' from %s"),
+	log_error(sprintf(
+		"[CIDRCalculator] Access denied for user '%s' from %s (missing privilege 'page-diagnostics-cidr-calculator')",
 		$_SESSION['Username'] ?? 'unknown',
-		$_SERVER['REMOTE_ADDR']
+		$_SERVER['REMOTE_ADDR'] ?? 'unknown'
 	));
 
 	// Display error and exit
@@ -451,6 +451,11 @@ include("head.inc");
 						const element = document.getElementById(elementId);
 						const text = element.textContent || element.innerText;
 
+						// Check if clipboard is available
+						if (!navigator.clipboard && !document.queryCommandSupported('copy')) {
+							showCopyFeedback(element, 'unavailable');
+							return;
+						}
 						// Modern clipboard API
 						if (navigator.clipboard && navigator.clipboard.writeText) {
 							navigator.clipboard.writeText(text).then(function () {

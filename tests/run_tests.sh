@@ -143,28 +143,37 @@ echo ""
 # ===========================================
 echo "Test 5: Validating pkg-plist..."
 
-# Check for absolute paths (should be relative)
-if grep -q "^/" pkg-plist 2>/dev/null; then
-	# Exception: /etc is allowed
-	if grep "^/" pkg-plist | grep -v "^etc/"; then
-		fail "Absolute paths found in pkg-plist (except /etc)"
-	else
-		pass "pkg-plist paths are correct"
-	fi
+# Check 1: Find absolute paths (starting with /) except for etc/
+# Note: pkg-plist uses relative paths, but etc/ is relative to system root
+invalid_paths=$(grep "^/" pkg-plist 2>/dev/null | grep -v "^/etc/" || true)
+if [ -n "$invalid_paths" ]; then
+	fail "Absolute paths found in pkg-plist (only etc/ allowed to start with /):"
+	echo "$invalid_paths" | while read -r line; do
+		echo "  - $line"
+	done
 else
-	pass "pkg-plist uses relative paths"
+	pass "pkg-plist paths are correct (no invalid absolute paths)"
 fi
 
-# Check for spaces in pkg-plist
-if grep -q " " pkg-plist 2>/dev/null; then
-	fail "Spaces found in pkg-plist entries"
+# Check 2: Find spaces in paths (but allow @dir entries which have space after @dir)
+# Valid: "@dir /some/path" or "@dir some/path"
+# Invalid: "path with spaces/file.txt"
+invalid_spaces=$(grep " " pkg-plist 2>/dev/null | grep -v "^@dir " || true)
+if [ -n "$invalid_spaces" ]; then
+	fail "Spaces found in pkg-plist entries (outside @dir directives):"
+	echo "$invalid_spaces" | while read -r line; do
+		echo "  - $line"
+	done
 else
-	pass "No spaces in pkg-plist"
+	pass "No invalid spaces in pkg-plist entries"
 fi
 
-# Check for tabs in pkg-plist
-if grep -P "\t" pkg-plist 2>/dev/null; then
-	fail "Tabs found in pkg-plist"
+# Check 3: Find tabs in pkg-plist (tabs should never be used)
+if grep -qP "\t" pkg-plist 2>/dev/null; then
+	fail "Tabs found in pkg-plist (use spaces or no whitespace)"
+	grep -nP "\t" pkg-plist | while read -r line; do
+		echo "  Line: $line"
+	done
 else
 	pass "No tabs in pkg-plist"
 fi

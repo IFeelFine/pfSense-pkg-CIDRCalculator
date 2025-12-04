@@ -1,5 +1,12 @@
-pfSense CIDR Calculator
+pfSense CIDR Calculator - An interactive IPv4 and IPv6 CIDR subnet calculator for pfSense.
 
-This package adds a responsive IPv4 and IPv6 CIDR subnet calculator to pfSense,
-accessible under Diagnostics and as an optional widget on the dashboard.
-Great for quick subnet calculations on IPv4 and IPv6 networks.
+Features:
+- Real-time subnet calculations with IPv4 and IPv6 support
+- Network address, broadcast, and usable host range calculation
+- CIDR notation conversion and wildcard mask generation
+- Dashboard widget for quick access
+- No server-side processing - all calculations client-side
+
+Accessible via Diagnostics menu and as an optional Dashboard widget.
+
+WWW: https://github.com/IFeelFine/pfSense-pkg-CIDRCalculator
