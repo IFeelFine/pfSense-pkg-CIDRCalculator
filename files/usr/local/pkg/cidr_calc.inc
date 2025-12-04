@@ -33,6 +33,34 @@ require_once("functions.inc");
 require_once("util.inc");
 
 /**
+ * Generate subnet mask data as JSON for JavaScript
+ * 
+ * Creates array of CIDR to subnet mask mappings for use in
+ * client-side calculations. Reduces code duplication between
+ * diagnostics page and widget.
+ * 
+ * @return string JSON-encoded array of subnet mask data
+ */
+function cidr_calc_get_subnet_masks_json()
+{
+	$masks = array();
+
+	for ($cidr = 1; $cidr <= 32; $cidr++) {
+		// Calculate subnet mask from CIDR notation
+		// Convert to 32-bit unsigned integer, then to dotted decimal
+		$maskBits = 0xFFFFFFFF << (32 - $cidr);
+		$mask = long2ip($maskBits);
+
+		$masks[] = array(
+			'cidr' => $cidr,
+			'mask' => $mask
+		);
+	}
+
+	return json_encode($masks);
+}
+
+/**
  * Initialize package during installation
  * 
  * Sets up default widget configuration and logs installation.
