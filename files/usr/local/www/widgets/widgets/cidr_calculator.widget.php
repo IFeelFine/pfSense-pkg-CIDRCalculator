@@ -1,34 +1,24 @@
 <?php
-/*--------------------------------------------------------------------------*
- *                                                                          *
- *       888888    888888              88     888888                        *
- *         88      88                  88     88   oo                       *
- *         88      88                  88     88                            *
- *         88      8888 .d8b.   .d8b.  88     8888 88 8888b.  .d8b.         *
- *         88      88  d8P Y8b d8P Y8b 88     88   88 88  8b d8P Y8b        *
- *         88      88  8888888 8888888 88     88   88 88  88 8888888        *
- *         88      88  Y8b.    Y8b.    88     88   88 88  88 Y8b.           *
- *       888888    88   ºY888P  ºY888P 88     88   88 88  88  ºY888P        *
- *                                                                          *
- *                                               (c) 2025 I Feel Fine, Inc. *
- *--------------------------------------------------------------------------*
- * Part of pfSense (https://www.pfsense.org)                                *
- * Copyright (c) 2015-2025 Rubicon Communications, LLC (Netgate)            *
- * All rights reserved.                                                     *
- *                                                                          *
- * Licensed under the Apache License, Version 2.0 (the "License");          *
- * you may not use this file except in compliance with the License.         *
- * You may obtain a copy of the License at                                  *
- *                                                                          *
- *     http://www.apache.org/licenses/LICENSE-2.0                           *
- *                                                                          *
- * Unless required by applicable law or agreed to in writing, software      *
- * distributed under the License is distributed on an "AS IS" BASIS,        *
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. *
- * See the License for the specific language governing permissions and      *
- * limitations under the License.                                           *
- *--------------------------------------------------------------------------*
- * Objective: IP CIDR calculator for pfSense in the Diagnostic menu.        */
+/*
+ * cidr_calculator.widget.php
+ *
+ * part of pfSense (https://www.pfsense.org)
+ * Copyright (c) 2025 I Feel Fine, Inc.
+ * Copyright (c) 2015-2025 Rubicon Communications, LLC (Netgate)
+ * All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 require_once("guiconfig.inc");
 require_once("cidr_calc.inc");
@@ -37,133 +27,74 @@ require_once("cidr_calc.inc");
 $widgetTitle = gettext("CIDR Calculator");
 $widgetTitleLink = "diag_cidr_calculator.php";
 
-// Get widget configuration with defaults
-$show_ipv4 = $config['widgets']['cidr_calculator']['show_ipv4'] ?? 'true';
-$show_ipv6 = $config['widgets']['cidr_calculator']['show_ipv6'] ?? 'true';
+// No user preferences to load - widget always shows both calculators
+// This keeps the widget stateless and avoids polluting config file
 
-// Handle configuration save with CSRF validation
-if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
-	// Verify CSRF token
-	if (!csrf_check()) {
-		csrf_error();
-		exit;
-	}
-
-	// Rate limiting: max 10 runs every 20 seconds per session
-	$rate_limit_key = 'cidr_widget_config_run';
-	$rate_limit_max = 10;
-	$rate_limit_window = 20; // seconds
-
-	if (!isset($_SESSION[$rate_limit_key])) {
-		$_SESSION[$rate_limit_key] = array('count' => 0, 'timestamp' => time());
-	}
-
-	$rate_data = &$_SESSION[$rate_limit_key];
-	$current_time = time();
-
-	// Reset counter if window has elapsed
-	if (($current_time - $rate_data['timestamp']) > $rate_limit_window) {
-		$rate_data['count'] = 0;
-		$rate_data['timestamp'] = $current_time;
-	}
-
-	// Check if rate limit exceeded
-	if ($rate_data['count'] >= $rate_limit_max) {
-		log_error(sprintf(
-			"[CIDR Calculator Widget] Rate limit exceeded for session %s: %d requests in %d seconds",
-			session_id(),
-			$rate_data['count'],
-			$rate_limit_window
-		));
-		header('HTTP/1.1 429 Too Many Requests');
-		echo gettext("Too many configuration updates. Please wait a moment and try again.");
-		exit;
-	}
-
-	// Increment counter
-	$rate_data['count']++;
-
-	// Validate input - only accept 'true' or 'false'
-	$new_ipv4 = ($_POST['show_ipv4'] === 'true') ? 'true' : 'false';
-	$new_ipv6 = ($_POST['show_ipv6'] === 'true') ? 'true' : 'false';
-
-	init_config_arr(array('widgets', 'cidr_calculator'));
-	$config['widgets']['cidr_calculator']['show_ipv4'] = $new_ipv4;
-	$config['widgets']['cidr_calculator']['show_ipv6'] = $new_ipv6;
-	write_config(gettext("Updated CIDR Calculator widget settings"));
-
-	// Redirect to avoid form resubmission
-	header("Location: /");
-	exit;
-}
 ?>
 
-<div class="table-responsive">
-	<table class="table table-striped table-hover table-condensed">
-		<tbody>
-			<tr>
-				<td>
-					<label class="checkbox-inline">
-						<input type="checkbox" id="widget_show_ipv4" <?= $show_ipv4 == 'true' ? 'checked' : '' ?>> <?= gettext("IPv4") ?>
-					</label>
-					<label class="checkbox-inline">
-						<input type="checkbox" id="widget_show_ipv6" <?= $show_ipv6 == 'true' ? 'checked' : '' ?>> <?= gettext("IPv6") ?>
-					</label>
-				</td>
-			</tr>
-		</tbody>
-	</table>
-</div>
-
-<!-- IPv4 Widget Calculator -->
-<div id="widget_ipv4_block" style="display: <?= $show_ipv4 == 'true' ? 'block' : 'none' ?>; margin-bottom: 15px;">
-	<div class="table-responsive">
-		<table class="table table-striped table-hover table-condensed">
-			<tbody>
-				<tr>
-					<td style="width: 30%;"><strong><?= gettext("IP/CIDR") ?>:</strong></td>
-					<td>
-						<input type="text" id="widget_ipv4_input" class="form-control input-sm" placeholder="192.168.1.0/24" value="192.168.1.0/24" style="width: 100%;" aria-label="<?= gettext("IPv4 address with CIDR notation") ?>">
-					</td>
-				</tr>
-				<tr id="widget_ipv4_results_row" style="display: none;">
-					<td colspan="2">
-						<div id="widget_ipv4_results" style="font-size: 12px;" role="region" aria-live="polite"></div>
-					</td>
-				</tr>
-			</tbody>
-		</table>
+<!-- IPv4 Calculator -->
+<div id="widget_ipv4_block" style="margin-bottom: 15px;">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<h3 class="panel-title"><?= gettext("IPv4") ?></h3>
+		</div>
+		<div class="panel-body">
+			<div class="table-responsive">
+				<table class="table table-striped table-hover table-condensed">
+					<tbody>
+						<tr>
+							<td style="width: 30%;"><strong><?= gettext("IP/CIDR") ?>:</strong></td>
+							<td>
+								<input type="text" id="widget_ipv4_input" class="form-control input-sm" placeholder="192.168.1.0/24" value="192.168.1.0/24" style="width: 100%;" aria-label="<?= gettext("IPv4 address with CIDR notation") ?>">
+							</td>
+						</tr>
+						<tr id="widget_ipv4_results_row" style="display: none;">
+							<td colspan="2">
+								<div id="widget_ipv4_results" style="font-size: 12px;" role="region" aria-live="polite"></div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
 	</div>
 </div>
 
-<!-- IPv6 Widget Calculator -->
-<div id="widget_ipv6_block" style="display: <?= $show_ipv6 == 'true' ? 'block' : 'none' ?>;">
-	<div class="table-responsive">
-		<table class="table table-striped table-hover table-condensed">
-			<tbody>
-				<tr>
-					<td style="width: 30%;"><strong><?= gettext("IPv6 Address") ?>:</strong></td>
-					<td>
-						<input type="text" id="widget_ipv6_addr" class="form-control input-sm" placeholder="2001:db8::" style="width: 100%;" aria-label="<?= gettext("IPv6 address") ?>">
-					</td>
-				</tr>
-				<tr>
-					<td><strong><?= gettext("Prefix Length") ?>:</strong></td>
-					<td>
-						<select id="widget_ipv6_mask" class="form-control input-sm" style="width: 100%;" aria-label="<?= gettext("IPv6 prefix length") ?>">
-							<?php for ($i = 1; $i <= 128; $i++): ?>
-								<option value="<?= htmlspecialchars($i) ?>" <?= $i == 64 ? "selected" : "" ?>><?= htmlspecialchars($i) ?></option>
-							<?php endfor; ?>
-						</select>
-					</td>
-				</tr>
-				<tr id="widget_ipv6_results_row" style="display: none;">
-					<td colspan="2">
-						<div id="widget_ipv6_results" style="font-size: 12px;" role="region" aria-live="polite"></div>
-					</td>
-				</tr>
-			</tbody>
-		</table>
+<!-- IPv6 Calculator -->
+<div id="widget_ipv6_block">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<h3 class="panel-title"><?= gettext("IPv6") ?></h3>
+		</div>
+		<div class="panel-body">
+			<div class="table-responsive">
+				<table class="table table-striped table-hover table-condensed">
+					<tbody>
+						<tr>
+							<td style="width: 30%;"><strong><?= gettext("IPv6 Address") ?>:</strong></td>
+							<td>
+								<input type="text" id="widget_ipv6_addr" class="form-control input-sm" placeholder="2001:db8::" style="width: 100%;" aria-label="<?= gettext("IPv6 address") ?>">
+							</td>
+						</tr>
+						<tr>
+							<td><strong><?= gettext("Prefix Length") ?>:</strong></td>
+							<td>
+								<select id="widget_ipv6_mask" class="form-control input-sm" style="width: 100%;" aria-label="<?= gettext("IPv6 prefix length") ?>">
+									<?php for ($i = 1; $i <= 128; $i++): ?>
+										<option value="<?= htmlspecialchars($i) ?>" <?= $i == 64 ? "selected" : "" ?>><?= htmlspecialchars($i) ?></option>
+									<?php endfor; ?>
+								</select>
+							</td>
+						</tr>
+						<tr id="widget_ipv6_results_row" style="display: none;">
+							<td colspan="2">
+								<div id="widget_ipv6_results" style="font-size: 12px;" role="region" aria-live="polite"></div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
 	</div>
 </div>
 
@@ -385,55 +316,7 @@ if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
 		resultsRow.style.display = 'table-row';
 	}
 
-	function widget_saveSettings(show_ipv4, show_ipv6) {
-		// Create hidden form for proper CSRF-protected POST
-		const form = document.createElement('form');
-		form.method = 'POST';
-		form.action = window.location.href;
-		form.style.display = 'none';
-
-		// Add CSRF token
-		const csrfInput = document.createElement('input');
-		csrfInput.type = 'hidden';
-		csrfInput.name = '__csrf_magic';
-		csrfInput.value = csrf.magic; // pfSense global csrf object
-		form.appendChild(csrfInput);
-
-		// Add IPv4 setting
-		const ipv4Input = document.createElement('input');
-		ipv4Input.type = 'hidden';
-		ipv4Input.name = 'show_ipv4';
-		ipv4Input.value = show_ipv4 ? 'true' : 'false';
-		form.appendChild(ipv4Input);
-
-		// Add IPv6 setting
-		const ipv6Input = document.createElement('input');
-		ipv6Input.type = 'hidden';
-		ipv6Input.name = 'show_ipv6';
-		ipv6Input.value = show_ipv6 ? 'true' : 'false';
-		form.appendChild(ipv6Input);
-
-		document.body.appendChild(form);
-		form.submit();
-	}
-
 	// Event listeners with proper error handling
-	document.getElementById('widget_show_ipv4').addEventListener('change', function () {
-		const show_ipv4 = this.checked;
-		const show_ipv6 = document.getElementById('widget_show_ipv6').checked;
-
-		document.getElementById('widget_ipv4_block').style.display = show_ipv4 ? 'block' : 'none';
-		widget_saveSettings(show_ipv4, show_ipv6);
-	});
-
-	document.getElementById('widget_show_ipv6').addEventListener('change', function () {
-		const show_ipv4 = document.getElementById('widget_show_ipv4').checked;
-		const show_ipv6 = this.checked;
-
-		document.getElementById('widget_ipv6_block').style.display = show_ipv6 ? 'block' : 'none';
-		widget_saveSettings(show_ipv4, show_ipv6);
-	});
-
 	document.getElementById('widget_ipv4_input').addEventListener('input', widget_updateIPv4);
 	document.getElementById('widget_ipv6_addr').addEventListener('input', widget_updateIPv6);
 	document.getElementById('widget_ipv6_mask').addEventListener('change', widget_updateIPv6);
