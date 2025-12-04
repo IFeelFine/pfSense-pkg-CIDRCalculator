@@ -9,27 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- CSRF protection for widget configuration
-- Accessibility improvements (ARIA labels, keyboard navigation)
-- Copy-to-clipboard functionality
-- IPv6 full address expansion
-
-### Fixed
-
-- JavaScript syntax errors in widget
-- XSS vulnerabilities in result display
-- IPv6 end address calculation
-- pkg-plist absolute path issues
-
-### Security
-
-- Proper CSRF token handling
-- Input sanitization and output escaping
-
-### Added
-
 - Initial release
 - IPv4 CIDR calculator with subnet mask conversion
 - IPv6 CIDR calculator with prefix length support
+- Copy-to-clipboard functionality
 - Dashboard widget with configuration options
 - Diagnostics menu integration
+- Rate limiting on the dashboard widget, returns HTTP 429 when hit
+- Automatic package building in GitHub with release tagging
+- Automated testing
