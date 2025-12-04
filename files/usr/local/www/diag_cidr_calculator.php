@@ -30,27 +30,15 @@
  *--------------------------------------------------------------------------*
  * Objective: IPv4 and IPv6 CIDR calculator for pfSense diagnostics menu.   */
 
+##|+PRIV
+##|*IDENT=page-diagnostics-cidr-calculator
+##|*NAME=Diagnostics: CIDR Calculator
+##|*DESCR=Allow access to the 'Diagnostics: CIDR Calculator' page.
+##|*MATCH=diag_cidr_calculator.php*
+##|-PRIV
+
 require_once("guiconfig.inc");
 require_once("cidr_calc.inc");
-
-// Verify user has required privilege
-if (!isAllowedPage("diag_cidr_calculator.php")) {
-	// Log unauthorized access attempt
-	log_error(sprintf(
-		"[CIDRCalculator] Access denied for user '%s' from %s (missing privilege 'page-diagnostics-cidr-calculator')",
-		$_SESSION['Username'] ?? 'unknown',
-		$_SERVER['REMOTE_ADDR'] ?? 'unknown'
-	));
-
-	// Display error and exit
-	include("head.inc");
-	echo '<div class="alert alert-danger" role="alert">';
-	echo gettext("You do not have permission to access this page. ");
-	echo gettext("The CIDR Calculator requires dashboard access privileges.");
-	echo '</div>';
-	include("foot.inc");
-	exit;
-}
 
 $pgtitle = array(gettext("Diagnostics"), gettext("CIDR Calculator"));
 $active_tab = $_GET['tab'] ?? 'ipv4';

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Automated test suite for pfSense-pkg-CIDRCalculator
 # Run this before submitting pull requests or creating releases
