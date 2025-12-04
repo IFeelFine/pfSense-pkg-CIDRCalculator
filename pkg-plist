@@ -1,7 +1,7 @@
-/etc/inc/priv/cidr_calc.priv.inc
-pkg/cidr_calc.inc
 pkg/cidr_calc.xml
+pkg/cidr_calc.inc
+/etc/inc/priv/cidr_calc.priv.inc
 %%DATADIR%%/info.xml
 www/diag_cidr_calculator.php
 www/widgets/widgets/cidr_calculator.widget.php
-@dir etc/inc/priv
+@dir /etc/inc/priv

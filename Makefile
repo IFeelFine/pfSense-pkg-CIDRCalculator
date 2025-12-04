@@ -19,7 +19,7 @@ NO_ARCH=					yes
 SUB_FILES=				pkg-install pkg-deinstall
 SUB_LIST=					PORTNAME=${PORTNAME}
 
-DATADIR=					${PREFIX}/share/${PORTNAME}
+DATADIR=					/share/${PORTNAME}
 
 do-extract:
 	${MKDIR} ${WRKSRC}
@@ -30,18 +30,18 @@ do-install:
 	${MKDIR} ${STAGEDIR}${PREFIX}/www/widgets/widgets
 	${MKDIR} ${STAGEDIR}/etc/inc/priv
 	${MKDIR} ${STAGEDIR}${DATADIR}
-	${INSTALL_DATA} ${FILESDIR}${PREFIX}/pkg/cidr_calc.inc \
-		${STAGEDIR}${PREFIX}/pkg
 	${INSTALL_DATA} ${FILESDIR}${PREFIX}/pkg/cidr_calc.xml \
 		${STAGEDIR}${PREFIX}/pkg
-	${INSTALL_DATA} ${FILESDIR}${DATADIR}/info.xml \
-		${STAGEDIR}${DATADIR}
-	${INSTALL_DATA} ${FILESDIR}${PREFIX}/www/diag_cidr_calculator.php \
-		${STAGEDIR}${PREFIX}/www
-	${INSTALL_DATA} ${FILESDIR}${PREFIX}/www/widgets/widgets/scidr_calculator.widget.php \
-		${STAGEDIR}${PREFIX}/www/widgets/widgets
+	${INSTALL_DATA} ${FILESDIR}${PREFIX}/pkg/cidr_calc.inc \
+		${STAGEDIR}${PREFIX}/pkg
 	${INSTALL_DATA} ${FILESDIR}/etc/inc/priv/cidr_calc.priv.inc \
 		${STAGEDIR}/etc/inc/priv
+	${INSTALL_DATA} ${FILESDIR}${PREFIX}${DATADIR}/info.xml \
+		${STAGEDIR}${PREFIX}${DATADIR}
+	${INSTALL_DATA} ${FILESDIR}${PREFIX}/www/diag_cidr_calculator.php \
+		${STAGEDIR}${PREFIX}/www
+	${INSTALL_DATA} ${FILESDIR}${PREFIX}/www/widgets/widgets/cidr_calculator.widget.php \
+		${STAGEDIR}${PREFIX}/www/widgets/widgets
 
 	@${REINPLACE_CMD} -i '' -e "s|%%PKGVERSION%%|${PKGVERSION}|" \
 		${STAGEDIR}${DATADIR}/info.xml
