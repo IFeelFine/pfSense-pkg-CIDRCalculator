@@ -3,7 +3,7 @@
 PORTNAME=					pfSense-pkg-CIDRCalculator
 PORTVERSION=			0.1.0
 PORTREVISION=			1
-CATEGORIES=				net
+CATEGORIES=				sysutils
 MASTER_SITES=			# empty
 DISTFILES=				# empty
 

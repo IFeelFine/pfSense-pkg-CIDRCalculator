@@ -31,6 +31,7 @@
  * Objective: IP CIDR calculator for pfSense in the Diagnostic menu.        */
 
 require_once("guiconfig.inc");
+require_once("cidr_calc.inc");
 
 // Widget metadata
 $widgetTitle = gettext("CIDR Calculator");
@@ -40,15 +41,15 @@ $widgetTitleLink = "diag_cidr_calculator.php";
 $show_ipv4 = $config['widgets']['cidr_calculator']['show_ipv4'] ?? 'true';
 $show_ipv6 = $config['widgets']['cidr_calculator']['show_ipv6'] ?? 'true';
 
-// Handle configuration save with validation
-
+// Handle configuration save with CSRF validation
 if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
-	// Verify CSRF token for state-changing operations
+	// Verify CSRF token
 	if (!csrf_check()) {
 		csrf_error();
+		exit;
 	}
 
-	// Validate input
+	// Validate input - only accept 'true' or 'false'
 	$new_ipv4 = ($_POST['show_ipv4'] === 'true') ? 'true' : 'false';
 	$new_ipv6 = ($_POST['show_ipv6'] === 'true') ? 'true' : 'false';
 
@@ -56,6 +57,8 @@ if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
 	$config['widgets']['cidr_calculator']['show_ipv4'] = $new_ipv4;
 	$config['widgets']['cidr_calculator']['show_ipv6'] = $new_ipv6;
 	write_config(gettext("Updated CIDR Calculator widget settings"));
+
+	// Redirect to avoid form resubmission
 	header("Location: /");
 	exit;
 }
@@ -86,12 +89,12 @@ if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
 				<tr>
 					<td style="width: 30%;"><strong><?= gettext("IP/CIDR") ?>:</strong></td>
 					<td>
-						<input type="text" id="widget_ipv4_input" class="form-control input-sm" placeholder="192.168.1.0/24" value="192.168.1.0/24" style="width: 100%;">
+						<input type="text" id="widget_ipv4_input" class="form-control input-sm" placeholder="192.168.1.0/24" value="192.168.1.0/24" style="width: 100%;" aria-label="<?= gettext("IPv4 address with CIDR notation") ?>">
 					</td>
 				</tr>
 				<tr id="widget_ipv4_results_row" style="display: none;">
 					<td colspan="2">
-						<div id="widget_ipv4_results" style="font-size: 12px;"></div>
+						<div id="widget_ipv4_results" style="font-size: 12px;" role="region" aria-live="polite"></div>
 					</td>
 				</tr>
 			</tbody>
@@ -107,22 +110,22 @@ if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
 				<tr>
 					<td style="width: 30%;"><strong><?= gettext("IPv6 Address") ?>:</strong></td>
 					<td>
-						<input type="text" id="widget_ipv6_addr" class="form-control input-sm" placeholder="2001:db8::" style="width: 100%;">
+						<input type="text" id="widget_ipv6_addr" class="form-control input-sm" placeholder="2001:db8::" style="width: 100%;" aria-label="<?= gettext("IPv6 address") ?>">
 					</td>
 				</tr>
 				<tr>
 					<td><strong><?= gettext("Prefix Length") ?>:</strong></td>
 					<td>
-						<select id="widget_ipv6_mask" class="form-control input-sm" style="width: 100%;">
-							<?php for ($i = 1; $i <= 128; $i++) : ?>
-								<option value="<?= htmlspecialchars($i)?>" <?= $i == 64 ? "selected" : "" ?>><?= htmlspecialchars($i) ?></option>
+						<select id="widget_ipv6_mask" class="form-control input-sm" style="width: 100%;" aria-label="<?= gettext("IPv6 prefix length") ?>">
+							<?php for ($i = 1; $i <= 128; $i++): ?>
+								<option value="<?= htmlspecialchars($i) ?>" <?= $i == 64 ? "selected" : "" ?>><?= htmlspecialchars($i) ?></option>
 							<?php endfor; ?>
 						</select>
 					</td>
 				</tr>
 				<tr id="widget_ipv6_results_row" style="display: none;">
 					<td colspan="2">
-						<div id="widget_ipv6_results" style="font-size: 12px;"></div>
+						<div id="widget_ipv6_results" style="font-size: 12px;" role="region" aria-live="polite"></div>
 					</td>
 				</tr>
 			</tbody>
@@ -133,19 +136,8 @@ if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
 <script type="text/javascript">
 	//<![CDATA[
 
-	const SUBNET_MASKS_WIDGET = [{
-	{ cidr: 1, mask: '128.0.0.0' }, { cidr: 2, mask: '192.0.0.0' }, { cidr: 3, mask: '224.0.0.0' },
-	{ cidr: 4, mask: '240.0.0.0' }, { cidr: 5, mask: '248.0.0.0' }, { cidr: 6, mask: '252.0.0.0' },
-	{ cidr: 7, mask: '254.0.0.0' }, { cidr: 8, mask: '255.0.0.0' }, { cidr: 9, mask: '255.128.0.0' },
-	{ cidr: 10, mask: '255.192.0.0' }, { cidr: 11, mask: '255.224.0.0' }, { cidr: 12, mask: '255.240.0.0' },
-	{ cidr: 13, mask: '255.248.0.0' }, { cidr: 14, mask: '255.252.0.0' }, { cidr: 15, mask: '255.254.0.0' },
-	{ cidr: 16, mask: '255.255.0.0' }, { cidr: 17, mask: '255.255.128.0' }, { cidr: 18, mask: '255.255.192.0' },
-	{ cidr: 19, mask: '255.255.224.0' }, { cidr: 20, mask: '255.255.240.0' }, { cidr: 21, mask: '255.255.248.0' },
-	{ cidr: 22, mask: '255.255.252.0' }, { cidr: 23, mask: '255.255.254.0' }, { cidr: 24, mask: '255.255.255.0' },
-	{ cidr: 25, mask: '255.255.255.128' }, { cidr: 26, mask: '255.255.255.192' }, { cidr: 27, mask: '255.255.255.224' },
-	{ cidr: 28, mask: '255.255.255.240' }, { cidr: 29, mask: '255.255.255.248' }, { cidr: 30, mask: '255.255.255.252' },
-	{ cidr: 31, mask: '255.255.255.254' }, { cidr: 32, mask: '255.255.255.255' }
-	];
+	// Load subnet masks from server-generated JSON to avoid duplication
+	const SUBNET_MASKS_WIDGET = <?= cidr_calc_get_subnet_masks_json() ?>;
 
 	function widget_validateIP(ip) {
 		const parts = ip.split('.');
@@ -222,6 +214,19 @@ if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
 		}
 	}
 
+	function widget_createResultElement(label, value) {
+		const container = document.createElement('div');
+
+		const strong = document.createElement('strong');
+		strong.textContent = label + ': ';
+		container.appendChild(strong);
+
+		const text = document.createTextNode(value);
+		container.appendChild(text);
+
+		return container;
+	}
+
 	function widget_updateIPv4() {
 		const input = document.getElementById('widget_ipv4_input').value.trim();
 		const resultsDiv = document.getElementById('widget_ipv4_results');
@@ -234,23 +239,25 @@ if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
 
 		const result = widget_calculateIPv4(input);
 
+		// Clear previous results
+		resultsDiv.textContent = '';
+
 		if (!result) {
-			// Use text content when possible, or sanitize properly
-			resultsDiv.innerHTML = '';
 			const errorSpan = document.createElement('span');
 			errorSpan.style.color = '#d9534f';
-			errorSpan.textContent = 'Invalid IP/CIDR format. Use: 192.168.1.0/24';
+			errorSpan.textContent = '<?= gettext("Invalid IP/CIDR format. Use: 192.168.1.0/24") ?>';
 			resultsDiv.appendChild(errorSpan);
 			resultsRow.style.display = 'table-row';
 			return;
 		}
 
-		resultsDiv.innerHTML =
-			'<strong>Network:</strong> ' + result.network + '/' + result.cidr + '<br>' +
-			'<strong>Mask:</strong> ' + result.mask + '<br>' +
-			'<strong>Range:</strong> ' + result.firstUsable + ' - ' + result.lastUsable + '<br>' +
-			'<strong>Broadcast:</strong> ' + result.broadcast + '<br>' +
-			'<strong>Usable Hosts:</strong> ' + result.usableHosts.toLocaleString();
+		// Build results using DOM manipulation (XSS-safe)
+		resultsDiv.appendChild(widget_createResultElement('<?= gettext("Network") ?>', result.network + '/' + result.cidr));
+		resultsDiv.appendChild(widget_createResultElement('<?= gettext("Mask") ?>', result.mask));
+		resultsDiv.appendChild(widget_createResultElement('<?= gettext("Range") ?>', result.firstUsable + ' - ' + result.lastUsable));
+		resultsDiv.appendChild(widget_createResultElement('<?= gettext("Broadcast") ?>', result.broadcast));
+		resultsDiv.appendChild(widget_createResultElement('<?= gettext("Usable Hosts") ?>', result.usableHosts.toLocaleString()));
+
 		resultsRow.style.display = 'table-row';
 	}
 
@@ -270,11 +277,34 @@ if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
 	function widget_validateIPv6(ip) {
 		// Allow compressed notation with ::
 		if (ip.includes('::')) {
-				// Verify only one :: occurrence
-				if ((ip.match(/::/g) || []).length > 1) return false;
+			// Verify only one :: occurrence
+			if ((ip.match(/::/g) || []).length > 1) return false;
 		}
 		// Standard validation
 		return /^([0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}$/i.test(ip);
+	}
+
+	function widget_calculateIPv6Network(fullAddr, prefixLen) {
+		const hextets = fullAddr.split(':');
+		const bits = hextets.map(h => parseInt(h, 16));
+
+		const networkBits = [];
+		let bitsRemaining = prefixLen;
+
+		for (let i = 0; i < 8; i++) {
+			if (bitsRemaining >= 16) {
+				networkBits.push(bits[i]);
+				bitsRemaining -= 16;
+			} else if (bitsRemaining > 0) {
+				const mask = (0xFFFF << (16 - bitsRemaining)) & 0xFFFF;
+				networkBits.push(bits[i] & mask);
+				bitsRemaining = 0;
+			} else {
+				networkBits.push(0);
+			}
+		}
+
+		return networkBits.map(b => b.toString(16).padStart(4, '0')).join(':');
 	}
 
 	function widget_updateIPv6() {
@@ -288,12 +318,13 @@ if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
 			return;
 		}
 
+		// Clear previous results
+		resultsDiv.textContent = '';
+
 		if (!widget_validateIPv6(addr)) {
-			// Use text content when possible, or sanitize properly
-			resultsDiv.innerHTML = '';
 			const errorSpan = document.createElement('span');
 			errorSpan.style.color = '#d9534f';
-			errorSpan.textContent = 'Invalid IPv6 address format';
+			errorSpan.textContent = '<?= gettext("Invalid IPv6 address format") ?>';
 			resultsDiv.appendChild(errorSpan);
 			resultsRow.style.display = 'table-row';
 			return;
@@ -301,57 +332,79 @@ if ($_POST && isset($_POST['show_ipv4']) && isset($_POST['show_ipv6'])) {
 
 		const full = widget_expandIPv6(addr);
 		if (!full) {
-			// Use text content when possible, or sanitize properly
-			resultsDiv.innerHTML = '';
 			const errorSpan = document.createElement('span');
 			errorSpan.style.color = '#d9534f';
-			errorSpan.textContent = 'Error expanding IPv6 address';
+			errorSpan.textContent = '<?= gettext("Error expanding IPv6 address") ?>';
 			resultsDiv.appendChild(errorSpan);
 			resultsRow.style.display = 'table-row';
 			return;
 		}
 
-		const networkLen = Math.floor(mask / 4) * 5 + (mask % 4 > 0 ? (mask % 4 + 1) : 0);
-		const network = full.substr(0, networkLen).padEnd(39, '0');
+		const network = widget_calculateIPv6Network(full, mask);
 		const subnets = mask < 64 ? Math.pow(2, 64 - mask).toLocaleString() : "1";
 
-		resultsDiv.innerHTML =
-			'<strong>Full:</strong> ' + full + '<br>' +
-			'<strong>Network:</strong> ' + network + '<br>' +
-			'<strong>/64 Subnets:</strong> ' + subnets;
+		// Build results using DOM manipulation (XSS-safe)
+		resultsDiv.appendChild(widget_createResultElement('<?= gettext("Full") ?>', full));
+		resultsDiv.appendChild(widget_createResultElement('<?= gettext("Network") ?>', network + '/' + mask));
+		resultsDiv.appendChild(widget_createResultElement('<?= gettext("/64 Subnets") ?>', subnets));
+
 		resultsRow.style.display = 'table-row';
 	}
 
-	document.getElementById('widget_show_ipv4').addEventListener('change', function() {
-		document.getElementById('widget_ipv4_block').style.display = this.checked ? 'block' : 'none';
-		$.ajax({
-			type: 'POST',
-			url: '/widgets/widgets/cidr_calculator.widget.php',
-			data: {
-				__csrf_magic: csrf_magic,  // Global token from pfSense
-				show_ipv4: this.checked ? 'true' : 'false',
-				show_ipv6: document.getElementById('widget_show_ipv6').checked ? 'true' : 'false'
-			}
-		});
+	function widget_saveSettings(show_ipv4, show_ipv6) {
+		// Create hidden form for proper CSRF-protected POST
+		const form = document.createElement('form');
+		form.method = 'POST';
+		form.action = window.location.href;
+		form.style.display = 'none';
+
+		// Add CSRF token
+		const csrfInput = document.createElement('input');
+		csrfInput.type = 'hidden';
+		csrfInput.name = '__csrf_magic';
+		csrfInput.value = csrf.magic; // pfSense global csrf object
+		form.appendChild(csrfInput);
+
+		// Add IPv4 setting
+		const ipv4Input = document.createElement('input');
+		ipv4Input.type = 'hidden';
+		ipv4Input.name = 'show_ipv4';
+		ipv4Input.value = show_ipv4 ? 'true' : 'false';
+		form.appendChild(ipv4Input);
+
+		// Add IPv6 setting
+		const ipv6Input = document.createElement('input');
+		ipv6Input.type = 'hidden';
+		ipv6Input.name = 'show_ipv6';
+		ipv6Input.value = show_ipv6 ? 'true' : 'false';
+		form.appendChild(ipv6Input);
+
+		document.body.appendChild(form);
+		form.submit();
+	}
+
+	// Event listeners with proper error handling
+	document.getElementById('widget_show_ipv4').addEventListener('change', function () {
+		const show_ipv4 = this.checked;
+		const show_ipv6 = document.getElementById('widget_show_ipv6').checked;
+
+		document.getElementById('widget_ipv4_block').style.display = show_ipv4 ? 'block' : 'none';
+		widget_saveSettings(show_ipv4, show_ipv6);
 	});
 
-	document.getElementById('widget_show_ipv6').addEventListener('change', function() {
-		document.getElementById('widget_ipv6_block').style.display = this.checked ? 'block' : 'none';
-		$.ajax({
-			type: 'POST',
-			url: '/widgets/widgets/cidr_calculator.widget.php',
-			data: {
-				__csrf_magic: csrf_magic,  // Global token from pfSense
-				show_ipv4: document.getElementById('widget_show_ipv4').checked ? 'true' : 'false'
-				show_ipv6: this.checked ? 'true' : 'false',
-			}
-		});
+	document.getElementById('widget_show_ipv6').addEventListener('change', function () {
+		const show_ipv4 = document.getElementById('widget_show_ipv4').checked;
+		const show_ipv6 = this.checked;
+
+		document.getElementById('widget_ipv6_block').style.display = show_ipv6 ? 'block' : 'none';
+		widget_saveSettings(show_ipv4, show_ipv6);
 	});
 
 	document.getElementById('widget_ipv4_input').addEventListener('input', widget_updateIPv4);
 	document.getElementById('widget_ipv6_addr').addEventListener('input', widget_updateIPv6);
 	document.getElementById('widget_ipv6_mask').addEventListener('change', widget_updateIPv6);
 
+	// Initialize IPv4 calculation
 	widget_updateIPv4();
 
 	//]]>

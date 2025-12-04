@@ -14,8 +14,32 @@ env:
   PFSENSE_VERSION: "2.8"
 
 jobs:
+  test:
+    name: Run Automated Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y php-cli libxml2-utils shellcheck
+        
+    - name: Run test suite
+      run: |
+        chmod +x tests/run_tests.sh
+        ./tests/run_tests.sh
+        
+    - name: Shellcheck install scripts
+      run: |
+        shellcheck files/pkg-install.in || true
+        shellcheck files/pkg-deinstall.in || true
+
   validate:
     name: Validate Package Files
+    needs: test
     runs-on: ubuntu-latest
     
     steps:
@@ -29,14 +53,14 @@ jobs:
           "Makefile"
           "pkg-desc"
           "pkg-plist"
-          "pkg-install.in"
-          "pkg-deinstall.in"
-          "files/etc/inc/priv/cidr_calc.inc"
+          "files/pkg-install.in"
+          "files/pkg-deinstall.in"
+          "files/etc/inc/priv/cidr_calc.priv.inc"
           "files/usr/local/pkg/cidr_calc.inc"
           "files/usr/local/pkg/cidr_calc.xml"
           "files/usr/local/share/pfSense-pkg-CIDRCalculator/info.xml"
           "files/usr/local/www/diag_cidr_calculator.php"
-          "files/usr/local/www/widgets/cidr_calculator.widget.php"
+          "files/usr/local/www/widgets/widgets/cidr_calculator.widget.php"
         )
         
         for file in "${required_files[@]}"; do
@@ -49,9 +73,6 @@ jobs:
         
     - name: Validate PHP syntax
       run: |
-        sudo apt-get update
-        sudo apt-get install -y php-cli
-        
         echo "Validating PHP files..."
         find files -name "*.php" -o -name "*.inc" | while read file; do
           echo "Checking: $file"
@@ -60,34 +81,60 @@ jobs:
         
     - name: Validate XML syntax
       run: |
-        sudo apt-get install -y libxml2-utils
-        
         echo "Validating XML files..."
         find files -name "*.xml" | while read file; do
           echo "Checking: $file"
           xmllint --noout "$file" || exit 1
         done
         
-    - name: Check for security issues
+    - name: Check Makefile format
       run: |
-        echo "Scanning for potential security issues..."
+        echo "Checking Makefile..."
+        # Verify required variables
+        grep -q "PORTNAME=" Makefile || (echo "ERROR: Missing PORTNAME" && exit 1)
+        grep -q "PORTVERSION=" Makefile || (echo "ERROR: Missing PORTVERSION" && exit 1)
+        grep -q ".include <bsd.port.mk>" Makefile || (echo "ERROR: Missing bsd.port.mk include" && exit 1)
+        echo "✓ Makefile structure valid"
         
-        # Check for eval() usage
+    - name: Check pkg-plist format
+      run: |
+        echo "Validating pkg-plist..."
+        # Check for absolute paths (except etc/)
+        if grep "^/" pkg-plist | grep -v "^etc/"; then
+          echo "ERROR: Invalid absolute paths in pkg-plist"
+          exit 1
+        fi
+        # Check for spaces
+        if grep " " pkg-plist; then
+          echo "ERROR: Spaces found in pkg-plist"
+          exit 1
+        fi
+        echo "✓ pkg-plist format valid"
+        
+    - name: Security scan
+      run: |
+        echo "Scanning for security issues..."
+        
+        # Check for dangerous functions
         if grep -r "eval(" files/; then
           echo "WARNING: Found eval() usage"
+          exit 1
         fi
         
-        # Check for system() calls
-        if grep -r "system(" files/; then
+        if grep -r "system(" files/ --include="*.php" --include="*.inc"; then
           echo "WARNING: Found system() calls"
         fi
         
-        # Check for shell_exec()
-        if grep -r "shell_exec(" files/; then
+        if grep -r "shell_exec(" files/ --include="*.php" --include="*.inc"; then
           echo "WARNING: Found shell_exec() calls"
         fi
         
-        echo "Security scan complete"
+        # Check for potential XSS
+        if grep -rn "innerHTML" files/ --include="*.php"; then
+          echo "WARNING: innerHTML usage found - review for XSS"
+        fi
+        
+        echo "✓ Security scan complete"
 
   build:
     name: Build Package
@@ -113,7 +160,7 @@ jobs:
       run: |
         mkdir -p package/usr/local/pkg
         mkdir -p package/usr/local/www
-        mkdir -p package/usr/local/www/widgets
+        mkdir -p package/usr/local/www/widgets/widgets
         mkdir -p package/usr/local/share/pfSense-pkg-CIDRCalculator
         mkdir -p package/etc/inc/priv
         
@@ -130,6 +177,7 @@ jobs:
       run: |
         sha256sum ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz > checksums.txt
         md5sum ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz >> checksums.txt
+        cat checksums.txt
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -164,30 +212,30 @@ jobs:
       with:
         name: package-${{ steps.version.outputs.VERSION }}
         
+    - name: Extract changelog for version
+      id: changelog
+      run: |
+        VERSION=${{ steps.version.outputs.VERSION }}
+        if [ -f CHANGELOG.md ]; then
+          # Extract section for this version
+          sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$ d' > release_notes.md
+          if [ -s release_notes.md ]; then
+            echo "Found release notes for version $VERSION"
+          else
+            echo "No specific release notes found, using default"
+            echo "See [CHANGELOG.md](CHANGELOG.md) for details." > release_notes.md
+          fi
+        else
+          echo "See commit history for changes." > release_notes.md
+        fi
+        
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
           ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz
           checksums.txt
-        body: |
-          ## pfSense CIDR Calculator v${{ steps.version.outputs.VERSION }}
-          
-          ### Installation
-          
-          Download the package and install via pfSense Package Manager or manually:
-          
-          ```
-          pkg add pfSense-pkg-CIDRCalculator-${{ steps.version.outputs.VERSION }}.tar.gz
-          ```
-          
-          ### Changes
-          
-          See [CHANGELOG.md](CHANGELOG.md) for details.
-          
-          ### Checksums
-          
-          See `checksums.txt` for file verification.
+        body_path: release_notes.md
         draft: false
         prerelease: false
       env:

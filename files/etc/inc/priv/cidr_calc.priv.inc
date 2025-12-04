@@ -28,6 +28,5 @@ $priv_list['page-diagnostics-cidr_calculator'] = array(
     'descr'   => 'Allow access to the CIDR subnet calculator',
     'match'   => array('diag_cidr_calculator.php*'),
 );
-
-$priv_list['page-diagnostics-cidr_calculator']['parent'] = 'page-dashboard-all';
+// Users with "WebCfg - Diagnostics: all pages" will inherit this privilege automatically
 ?>
