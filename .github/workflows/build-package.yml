@@ -2,16 +2,20 @@ name: Build pfSense Package
 
 on:
   push:
-    branches: [ main, develop ]
     tags:
-      - 'v*'
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+      - 'v*'              # Production releases: v1.0.0, v2.1.3
+      - 'beta-v*'         # Beta releases: beta-v1.0.0-rc1
+  workflow_dispatch:      # Manual trigger from GitHub UI
+    inputs:
+      debug_enabled:
+        description: 'Enable debug output'
+        required: false
+        default: 'false'
 
 env:
   PACKAGE_NAME: pfSense-pkg-CIDRCalculator
   PFSENSE_VERSION: "2.8"
+  FREEBSD_VERSION: "14.1"  # Match pfSense 2.8 base
 
 jobs:
   test:
@@ -26,6 +30,11 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y php-cli libxml2-utils shellcheck
+        
+    - name: Fix test script shebang
+      run: |
+        # Ensure bash shebang is used
+        sed -i '1s|^#!/bin/sh|#!/bin/bash|' tests/run_tests.sh
         
     - name: Run test suite
       run: |
@@ -104,8 +113,8 @@ jobs:
           echo "ERROR: Invalid absolute paths in pkg-plist"
           exit 1
         fi
-        # Check for spaces
-        if grep " " pkg-plist; then
+        # Check for spaces (excluding @dir directives)
+        if grep " " pkg-plist | grep -v "^@dir "; then
           echo "ERROR: Spaces found in pkg-plist"
           exit 1
         fi
@@ -136,8 +145,8 @@ jobs:
         
         echo "✓ Security scan complete"
 
-  build:
-    name: Build Package
+  build-source:
+    name: Build Source Tarball
     needs: validate
     runs-on: ubuntu-latest
     
@@ -156,7 +165,7 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         echo "Building version: $VERSION"
         
-    - name: Create package structure
+    - name: Create source package structure
       run: |
         mkdir -p package/usr/local/pkg
         mkdir -p package/usr/local/www
@@ -167,7 +176,7 @@ jobs:
         # Copy files to package structure
         cp -r files/* package/
         
-    - name: Create tarball
+    - name: Create source tarball
       run: |
         cd package
         tar czf ../${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz *
@@ -175,22 +184,169 @@ jobs:
         
     - name: Generate checksums
       run: |
-        sha256sum ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz > checksums.txt
-        md5sum ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz >> checksums.txt
-        cat checksums.txt
+        sha256sum ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz > checksums-source.txt
+        md5sum ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz >> checksums-source.txt
+        cat checksums-source.txt
         
-    - name: Upload build artifacts
+    - name: Upload source tarball
       uses: actions/upload-artifact@v4
       with:
-        name: package-${{ steps.version.outputs.VERSION }}
+        name: source-tarball-${{ steps.version.outputs.VERSION }}
         path: |
           ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz
-          checksums.txt
+          checksums-source.txt
+        retention-days: 30
+
+  build-freebsd-package:
+    name: Build FreeBSD Package
+    needs: validate
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set version
+      id: version
+      run: |
+        if [[ $GITHUB_REF == refs/tags/v* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          VERSION=$(grep "PORTVERSION=" Makefile | cut -d= -f2 | tr -d '[:space:]')
+          VERSION="${VERSION}-dev-$(git rev-parse --short HEAD)"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Building FreeBSD package version: $VERSION"
+        
+    - name: Build package in FreeBSD VM
+      uses: vmactions/freebsd-vm@v1
+      with:
+        release: ${{ env.FREEBSD_VERSION }}
+        usesh: true
+        prepare: |
+          pkg install -y gmake
+          
+        run: |
+          set -e
+          echo "FreeBSD version:"
+          freebsd-version
+          
+          echo "Creating staging directory..."
+          mkdir -p /tmp/staging
+          
+          # Create directory structure
+          mkdir -p /tmp/staging/usr/local/pkg
+          mkdir -p /tmp/staging/usr/local/www
+          mkdir -p /tmp/staging/usr/local/www/widgets/widgets
+          mkdir -p /tmp/staging/usr/local/share/${{ env.PACKAGE_NAME }}
+          mkdir -p /tmp/staging/etc/inc/priv
+          
+          # Copy files to staging
+          echo "Copying files to staging..."
+          cp files/usr/local/pkg/cidr_calc.xml /tmp/staging/usr/local/pkg/
+          cp files/usr/local/pkg/cidr_calc.inc /tmp/staging/usr/local/pkg/
+          cp files/etc/inc/priv/cidr_calc.priv.inc /tmp/staging/etc/inc/priv/
+          cp files/usr/local/share/pfSense-pkg-CIDRCalculator/info.xml /tmp/staging/usr/local/share/${{ env.PACKAGE_NAME }}/
+          cp files/usr/local/www/diag_cidr_calculator.php /tmp/staging/usr/local/www/
+          cp files/usr/local/www/widgets/widgets/cidr_calculator.widget.php /tmp/staging/usr/local/www/widgets/widgets/
+          
+          # Process pkg-install and pkg-deinstall scripts
+          echo "Processing install scripts..."
+          sed "s/%%PORTNAME%%/${{ env.PACKAGE_NAME }}/g" files/pkg-install.in > /tmp/staging/pkg-install
+          sed "s/%%PORTNAME%%/${{ env.PACKAGE_NAME }}/g" files/pkg-deinstall.in > /tmp/staging/pkg-deinstall
+          chmod +x /tmp/staging/pkg-install /tmp/staging/pkg-deinstall
+          
+          # Extract package info from Makefile
+          PORTVERSION=$(grep "PORTVERSION=" Makefile | cut -d= -f2 | tr -d '[:space:]')
+          COMMENT=$(grep "COMMENT=" Makefile | cut -d= -f2- | tr -d '\t')
+          MAINTAINER=$(grep "MAINTAINER=" Makefile | cut -d= -f2 | tr -d '[:space:]')
+          
+          # Create manifest
+          echo "Creating package manifest..."
+          cat > /tmp/manifest.ucl <<EOF
+          name: "${{ env.PACKAGE_NAME }}"
+          version: "${{ steps.version.outputs.VERSION }}"
+          origin: "sysutils/${{ env.PACKAGE_NAME }}"
+          comment: ${COMMENT}
+          maintainer: "${MAINTAINER}"
+          www: "https://github.com/IFeelFine/pfSense-pkg-CIDRCalculator"
+          arch: "freebsd:14:*"
+          prefix: "/usr/local"
+          licenselogic: "single"
+          licenses: [ "APACHE20" ]
+          desc: <<EOD
+          Interactive CIDR Calculator for pfSense with IPv4/IPv6 support.
+          Includes a dashboard widget for quick subnet calculations.
+          
+          Features:
+          - IPv4 and IPv6 CIDR calculations
+          - Network address, broadcast address, and usable host range
+          - Subnet mask conversions
+          - Dashboard widget integration
+          EOD
+          categories: [ "sysutils" ]
+          scripts: {
+            post-install: "/pkg-install"
+            post-deinstall: "/pkg-deinstall"
+          }
+          EOF
+          
+          echo "Package manifest:"
+          cat /tmp/manifest.ucl
+          
+          # Create the package
+          echo "Creating FreeBSD package..."
+          cd /tmp/staging
+          pkg create -m /tmp/manifest.ucl -r . -o /tmp -p /tmp/staging/pkg-install -d /tmp/staging/pkg-deinstall
+          
+          # Find the created package
+          PKGFILE=$(ls /tmp/${{ env.PACKAGE_NAME }}-*.pkg 2>/dev/null || ls /tmp/${{ env.PACKAGE_NAME }}-*.txz 2>/dev/null)
+          
+          if [ -z "$PKGFILE" ]; then
+            echo "ERROR: Package file not created"
+            ls -la /tmp/
+            exit 1
+          fi
+          
+          echo "Package created: $PKGFILE"
+          
+          # Copy to workspace
+          cp "$PKGFILE" $GITHUB_WORKSPACE/
+          
+          # Show package info
+          echo "Package information:"
+          pkg info -F "$PKGFILE"
+          
+          # Show package contents
+          echo "Package contents:"
+          pkg info -l -F "$PKGFILE"
+          
+    - name: Generate package checksums
+      run: |
+        PKGFILE=$(ls ${{ env.PACKAGE_NAME }}-*.pkg 2>/dev/null || ls ${{ env.PACKAGE_NAME }}-*.txz 2>/dev/null)
+        if [ -f "$PKGFILE" ]; then
+          sha256sum "$PKGFILE" > checksums-pkg.txt
+          md5sum "$PKGFILE" >> checksums-pkg.txt
+          cat checksums-pkg.txt
+        else
+          echo "ERROR: No package file found"
+          ls -la
+          exit 1
+        fi
+        
+    - name: Upload FreeBSD package
+      uses: actions/upload-artifact@v4
+      with:
+        name: freebsd-package-${{ steps.version.outputs.VERSION }}
+        path: |
+          ${{ env.PACKAGE_NAME }}-*.pkg
+          ${{ env.PACKAGE_NAME }}-*.txz
+          checksums-pkg.txt
         retention-days: 30
 
   release:
     name: Create Release
-    needs: build
+    needs: [build-source, build-freebsd-package]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     
@@ -207,10 +363,30 @@ jobs:
         VERSION=${GITHUB_REF#refs/tags/v}
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         
-    - name: Download artifacts
+    - name: Download source tarball
       uses: actions/download-artifact@v4
       with:
-        name: package-${{ steps.version.outputs.VERSION }}
+        name: source-tarball-${{ steps.version.outputs.VERSION }}
+        path: ./artifacts-source/
+        
+    - name: Download FreeBSD package
+      uses: actions/download-artifact@v4
+      with:
+        name: freebsd-package-${{ steps.version.outputs.VERSION }}
+        path: ./artifacts-pkg/
+        
+    - name: Prepare release files
+      run: |
+        mkdir -p release-files
+        cp artifacts-source/* release-files/
+        cp artifacts-pkg/* release-files/
+        
+        # Create combined checksums
+        cat artifacts-source/checksums-source.txt > release-files/checksums.txt
+        cat artifacts-pkg/checksums-pkg.txt >> release-files/checksums.txt
+        
+        echo "Release files:"
+        ls -lah release-files/
         
     - name: Extract changelog for version
       id: changelog
@@ -226,15 +402,31 @@ jobs:
             echo "See [CHANGELOG.md](CHANGELOG.md) for details." > release_notes.md
           fi
         else
-          echo "See commit history for changes." > release_notes.md
+          cat > release_notes.md <<EOF
+          ## Installation
+          
+          ### For pfSense
+          Download the \`.pkg\` or \`.txz\` file and install on your pfSense system:
+          
+          \`\`\`bash
+          pkg add ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.pkg
+          \`\`\`
+          
+          ### Source Installation
+          Download the \`.tar.gz\` source archive for manual installation.
+          
+          See commit history for changes.
+          EOF
         fi
         
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ${{ env.PACKAGE_NAME }}-${{ steps.version.outputs.VERSION }}.tar.gz
-          checksums.txt
+          release-files/${{ env.PACKAGE_NAME }}-*.tar.gz
+          release-files/${{ env.PACKAGE_NAME }}-*.pkg
+          release-files/${{ env.PACKAGE_NAME }}-*.txz
+          release-files/checksums.txt
         body_path: release_notes.md
         draft: false
         prerelease: false
