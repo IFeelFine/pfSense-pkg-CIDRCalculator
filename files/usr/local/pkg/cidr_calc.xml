@@ -26,26 +26,16 @@
  */
     ]]>
   </copyright>
-  <descr>Responsive IPv4 and IPv6 CIDR Calculator with dashboard widget support.</descr>
   <name>CIDRCalculator</name>
-  <title>Diagnostics/CIDR Calculator</title>
+  <title>Diagnostics: CIDR Calculator</title>
   <version>%%PKGVERSION%%</version>
-  <category>Diagnostics</category>
+  <include_file>/usr/local/pkg/cidr_calc.inc</include_file>
   <menu>
     <name>CIDR Calculator</name>
     <section>Diagnostics</section>
     <url>/diag_cidr_calculator.php</url>
   </menu>
-  <additional_files_needed>
-    <item>https://raw.githubusercontent.com/ifeelfine/pfSense-pkg-CIDRCalculator/master/files/usr/local/www/diag_cidr_calculator.php</item>
-    <prefix>/usr/local/www/</prefix>
-  </additional_files_needed>
-  <additional_files_needed>
-    <item>https://raw.githubusercontent.com/ifeelfine/pfSense-pkg-CIDRCalculator/master/files/usr/local/www/widgets/cidr_calculator.widget.php</item>
-    <prefix>/usr/local/www/widgets/</prefix>
-  </additional_files_needed>
-  <additional_files_needed>
-    <item>https://raw.githubusercontent.com/ifeelfine/pfSense-pkg-CIDRCalculator/master/files/etc/inc/priv/cidr_calc.priv.inc</item>
-    <prefix>/etc/inc/priv/</prefix>
-  </additional_files_needed>
+  <service>
+    <!-- No service required for calculator -->
+  </service>
 </packagegui>
