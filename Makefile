@@ -1,25 +1,25 @@
 # pfSense package Makefile for CIDRCalculator
 
-PORTNAME=					pfSense-pkg-CIDRCalculator
-PORTVERSION=			0.1.0
-PORTREVISION=			1
-CATEGORIES=				sysutils
-MASTER_SITES=			# empty
-DISTFILES=				# empty
+PORTNAME=	pfSense-pkg-CIDRCalculator
+PORTVERSION=	0.1.0
+PORTREVISION=	1
+CATEGORIES=	sysutils
+MASTER_SITES=	# empty
+DISTFILES=	# empty
 
-MAINTAINER=				13614128+imdebating@users.noreply.github.com
-COMMENT=					Interactive CIDR Calculator for pfSense with IPv4/IPv6 support. Includes a dashboard widget.
+MAINTAINER=	13614128+imdebating@users.noreply.github.com
+COMMENT=	Interactive CIDR Calculator for pfSense with IPv4/IPv6 support. Includes a dashboard widget.
 
-LICENSE=					APACHE20
+LICENSE=	APACHE20
 
-NO_BUILD=					yes
-NO_MTREE=					yes
-NO_ARCH=					yes
+NO_BUILD=	yes
+NO_MTREE=	yes
+NO_ARCH=	yes
 
-SUB_FILES=				pkg-install pkg-deinstall
-SUB_LIST=					PORTNAME=${PORTNAME}
+DATADIR=	/share/${PORTNAME}
 
-DATADIR=					/share/${PORTNAME}
+SUB_FILES=	pkg-install pkg-deinstall
+SUB_LIST=	PORTNAME=${PORTNAME}
 
 do-extract:
 	${MKDIR} ${WRKSRC}
