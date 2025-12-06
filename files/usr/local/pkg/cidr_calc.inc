@@ -117,20 +117,4 @@ function cidr_calc_upgrade()
 	log_error(gettext("[CIDRCalculator] Package upgraded successfully"));
 }
 
-/**
- * Validate package configuration input
- * 
- * Currently unused as package has no configuration page,
- * but included for future extensibility.
- * 
- * @param array $post POST data to validate
- * @param array $input_errors Reference to error array
- * @return void
- */
-function cidr_calc_validate_input($post, &$input_errors)
-{
-	// No configuration page currently
-	// Future: validate widget settings if configuration page added
-}
-
 ?>
