@@ -1,3 +1,10 @@
 #!/bin/sh
 
-/usr/local/bin/php -f /etc/rc.packages %%PORTNAME%% ${2}
+if [ "${2}" != "POST-DEINSTALL" ]; then
+    exit 0
+fi
+
+# Just log the removal
+/usr/bin/logger -p daemon.info "pfSense-pkg-CIDRCalculator: Package removed successfully"
+
+exit 0

@@ -4,4 +4,6 @@ if [ "${2}" != "POST-INSTALL" ]; then
 	exit 0
 fi
 
-${PKG_ROOTDIR}/usr/local/bin/php -f ${PKG_ROOTDIR}/etc/rc.packages %%PORTNAME%% ${2}
+/usr/bin/logger -p daemon.info "pfSense-pkg-CIDRCalculator: Package installed successfully"
+
+exit
