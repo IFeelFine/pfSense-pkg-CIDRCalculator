@@ -16,7 +16,7 @@ NO_BUILD=	yes
 NO_MTREE=	yes
 NO_ARCH=	yes
 
-DATADIR=	/share/${PORTNAME}
+DATADIR=	${PREFIX}/share/${PORTNAME}
 
 SUB_FILES=	pkg-install pkg-deinstall
 SUB_LIST=	PORTNAME=${PORTNAME}
@@ -36,8 +36,8 @@ do-install:
 		${STAGEDIR}${PREFIX}/pkg
 	${INSTALL_DATA} ${FILESDIR}/etc/inc/priv/cidr_calc.priv.inc \
 		${STAGEDIR}/etc/inc/priv
-	${INSTALL_DATA} ${FILESDIR}${PREFIX}${DATADIR}/info.xml \
-		${STAGEDIR}${PREFIX}${DATADIR}
+	${INSTALL_DATA} ${FILESDIR}${DATADIR}/info.xml \
+		${STAGEDIR}${DATADIR}
 	${INSTALL_DATA} ${FILESDIR}${PREFIX}/www/diag_cidr_calculator.php \
 		${STAGEDIR}${PREFIX}/www
 	${INSTALL_DATA} ${FILESDIR}${PREFIX}/www/widgets/widgets/cidr_calculator.widget.php \
