@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Update [pkg-install.in](files/pkg-install.in) [pkg-deinstall.in](files/pkg-deinstall.in) files removing any service interaction
-- Change [Makefile](Makefile) DATADIR variable and directory locations
+- Change [Makefile](Makefile) DATADIR variable and directory locations,
+- as well as comment out SUB_FILES & SUB_LISTS as no service install needed
 
 ## [0.1.0] - 2025-12-05
 

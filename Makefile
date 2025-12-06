@@ -2,7 +2,7 @@
 
 PORTNAME=	pfSense-pkg-CIDRCalculator
 PORTVERSION=	0.1.1
-PORTREVISION=	1
+PORTREVISION=	2
 CATEGORIES=	sysutils
 MASTER_SITES=	# empty
 DISTFILES=	# empty
@@ -18,8 +18,12 @@ NO_ARCH=	yes
 
 DATADIR=	${PREFIX}/share/${PORTNAME}
 
-SUB_FILES=	pkg-install pkg-deinstall
-SUB_LIST=	PORTNAME=${PORTNAME}
+# Remove the SUB_FILES and SUB_LIST lines if you do not have pkg-install and
+# pkg-deinstall scripts to be processed. Remove the '#' characters below if
+# you wish to use these features.
+# 
+# SUB_FILES=	pkg-install pkg-deinstall
+# SUB_LIST=	PORTNAME=${PORTNAME}
 
 do-extract:
 	${MKDIR} ${WRKSRC}
