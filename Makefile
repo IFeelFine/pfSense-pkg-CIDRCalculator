@@ -1,7 +1,7 @@
 # pfSense package Makefile for CIDRCalculator
 
 PORTNAME=	pfSense-pkg-CIDRCalculator
-PORTVERSION=	0.1.0
+PORTVERSION=	0.1.1
 PORTREVISION=	1
 CATEGORIES=	sysutils
 MASTER_SITES=	# empty
